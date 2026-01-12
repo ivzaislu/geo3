@@ -8,6 +8,7 @@ Mini-Spiel zum Lernen der deutschen Bundesländer (Namen + Hauptstädte) mit **L
 - **Quiz**: Easy/Medium/Hard
   - **Hard**: Multiple Choice + Timer
   - **Gemischt (2–4x)**: Frage-Typ wechselt in Blöcken von 2 bis 4 Aufgaben (Bundesland/Hauptstadt)
+- **Europa-Modus**: eigenes Karten-Quiz für Länder & Hauptstädte, umschaltbar per Modus-Selector
 - **Tooltips**: **nur in Lernen** (Checkbox), **nie im Quiz**
 - **Statistik pro Spielername** wird in `stats.json` gespeichert
 
@@ -24,6 +25,7 @@ Dann öffnen:
 Dateien:
 - `index.html`
 - `bundeslaender.geojson`
+- `europe.geojson`
 - `server.py`
 - `stats.json` (wird automatisch angelegt)
 

@@ -62,6 +62,62 @@ def default_stats(state_names):
     }
 
 
+def normalize_player(player):
+    if not isinstance(player, dict):
+        return {"statsByMode": {}}
+    if "statsByMode" in player:
+        return player
+    if any(k in player for k in ["questions", "right", "wrong", "bestStreak", "highscore", "perState"]):
+        return {"statsByMode": {"germany": player}}
+    return {"statsByMode": {}}
+
+
+def ensure_stats_fields(st, state_names):
+    st.setdefault("questions", 0)
+    st.setdefault("right", 0)
+    st.setdefault("wrong", 0)
+    st.setdefault("bestStreak", 0)
+    st.setdefault("highscore", 0)
+    st.setdefault("hardTimesMs", [])
+    st.setdefault("perState", {})
+    for s in state_names:
+        st["perState"].setdefault(s, {"right": 0, "wrong": 0})
+    return st
+
+
+def apply_stats_update(st, stats, state_names):
+    ensure_stats_fields(st, state_names)
+
+    for k in ["questions", "right", "wrong", "bestStreak", "highscore"]:
+        try:
+            st[k] = int(stats.get(k, st.get(k, 0)) or 0)
+        except Exception:
+            st[k] = int(st.get(k, 0) or 0)
+
+    hard_times = stats.get("hardTimesMs", st.get("hardTimesMs", []))
+    if isinstance(hard_times, list):
+        cleaned = []
+        for x in hard_times[-200:]:
+            try:
+                cleaned.append(int(x))
+            except Exception:
+                pass
+        st["hardTimesMs"] = cleaned
+
+    st.setdefault("perState", {})
+    per = stats.get("perState", {})
+    if isinstance(per, dict):
+        for s in state_names:
+            v = per.get(s, st["perState"].get(s, {"right": 0, "wrong": 0}))
+            if not isinstance(v, dict):
+                v = {"right": 0, "wrong": 0}
+            st["perState"][s] = {
+                "right": int(v.get("right", 0) or 0),
+                "wrong": int(v.get("wrong", 0) or 0),
+            }
+    return st
+
+
 class Handler(SimpleHTTPRequestHandler):
     def read_json(self):
         length = int(self.headers.get("Content-Length", "0"))
@@ -85,6 +141,7 @@ class Handler(SimpleHTTPRequestHandler):
 
             q = parse_qs(urlparse(self.path).query)
             name = (q.get("name", ["Gast"])[0] or "Gast").strip()[:24]
+            mode = (q.get("mode", ["germany"])[0] or "germany").strip()
             states_csv = q.get("states", [""])[0]
             state_names = [s.strip() for s in states_csv.split(",") if s.strip()]
 
@@ -92,22 +149,21 @@ class Handler(SimpleHTTPRequestHandler):
             players = db.setdefault("players", {})
 
             if name not in players:
-                players[name] = default_stats(state_names)
-                save_db(db)
-            else:
-                st = players[name]
-                st.setdefault("questions", 0)
-                st.setdefault("right", 0)
-                st.setdefault("wrong", 0)
-                st.setdefault("bestStreak", 0)
-                st.setdefault("highscore", 0)
-                st.setdefault("hardTimesMs", [])
-                st.setdefault("perState", {})
-                for s in state_names:
-                    st["perState"].setdefault(s, {"right": 0, "wrong": 0})
-                save_db(db)
+                players[name] = {"statsByMode": {}}
 
-            self.send_json({"name": name, "stats": players[name]})
+            player = normalize_player(players[name])
+            stats_by_mode = player.setdefault("statsByMode", {})
+            st = stats_by_mode.get(mode)
+            if not isinstance(st, dict):
+                st = default_stats(state_names)
+                stats_by_mode[mode] = st
+            else:
+                ensure_stats_fields(st, state_names)
+
+            players[name] = player
+            save_db(db)
+
+            self.send_json({"name": name, "mode": mode, "stats": st})
             return
 
         return super().do_GET()
@@ -120,6 +176,7 @@ class Handler(SimpleHTTPRequestHandler):
                 return
 
             name = (payload.get("name") or "Gast").strip()[:24]
+            mode = (payload.get("mode") or "germany").strip()
             stats = payload.get("stats")
             state_names = payload.get("states") or []
 
@@ -129,40 +186,15 @@ class Handler(SimpleHTTPRequestHandler):
 
             db = load_db()
             players = db.setdefault("players", {})
-            st = players.get(name) or default_stats(state_names)
+            player = normalize_player(players.get(name))
+            stats_by_mode = player.setdefault("statsByMode", {})
+            st = stats_by_mode.get(mode)
+            if not isinstance(st, dict):
+                st = default_stats(state_names)
+            st = apply_stats_update(st, stats, state_names)
+            stats_by_mode[mode] = st
 
-            # scalar fields
-            for k in ["questions", "right", "wrong", "bestStreak", "highscore"]:
-                try:
-                    st[k] = int(stats.get(k, st.get(k, 0)) or 0)
-                except Exception:
-                    st[k] = int(st.get(k, 0) or 0)
-
-            # hard times
-            hard_times = stats.get("hardTimesMs", st.get("hardTimesMs", []))
-            if isinstance(hard_times, list):
-                cleaned = []
-                for x in hard_times[-200:]:
-                    try:
-                        cleaned.append(int(x))
-                    except Exception:
-                        pass
-                st["hardTimesMs"] = cleaned
-
-            # perState
-            st.setdefault("perState", {})
-            per = stats.get("perState", {})
-            if isinstance(per, dict):
-                for s in state_names:
-                    v = per.get(s, st["perState"].get(s, {"right": 0, "wrong": 0}))
-                    if not isinstance(v, dict):
-                        v = {"right": 0, "wrong": 0}
-                    st["perState"][s] = {
-                        "right": int(v.get("right", 0) or 0),
-                        "wrong": int(v.get("wrong", 0) or 0),
-                    }
-
-            players[name] = st
+            players[name] = player
             save_db(db)
             self.send_json({"ok": True})
             return

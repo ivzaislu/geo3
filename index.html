@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Bundesländer – Lernen & Quiz</title>
+  <title>Geografie – Lernen & Quiz</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -87,7 +87,7 @@
   <div id="map"></div>
 
   <aside class="panel">
-    <div class="title">🇩🇪 Bundesländer (Lernen & Quiz)</div>
+    <div class="title" id="appTitle">🇩🇪 Deutschland – Bundesländer (Lernen & Quiz)</div>
 
     <div class="card">
       <div class="big" style="font-size:16px;">👤 Spieler</div>
@@ -96,6 +96,15 @@
         <button id="savePlayerBtn" type="button">Speichern</button>
       </div>
       <div class="muted" style="margin-top:8px;">Statistik wird in <code>stats.json</code> gespeichert (über <code>server.py</code>).</div>
+    </div>
+
+    <div class="card">
+      <div class="big" style="font-size:16px;">🌍 Modus</div>
+      <select id="regionMode">
+        <option value="germany">🇩🇪 Deutschland – Bundesländer</option>
+        <option value="europe">🇪🇺 Europa – Länder</option>
+      </select>
+      <div class="muted" style="margin-top:8px;">Wechsle zwischen Deutschland- und Europa-Karte (Land & Hauptstadt).</div>
     </div>
 
     <div class="tabs">
@@ -109,7 +118,7 @@
 
         <div class="info">
           <div class="cell">
-            <div class="label">Bundesland</div>
+            <div class="label" id="learnStateLabel">Bundesland</div>
             <div class="value" id="learnState">—</div>
           </div>
           <div class="cell">
@@ -149,7 +158,7 @@
       </div>
 
       <div class="card">
-        <div class="big" style="font-size:16px;">📏 Größte & kleinste Bundesländer</div>
+        <div class="big" style="font-size:16px;" id="factsTitle">📏 Größte & kleinste Bundesländer</div>
         <div class="muted">Berechnet automatisch aus deinem GeoJSON.</div>
         <div class="factsGrid" id="factsBox"><div class="muted">Lade…</div></div>
       </div>
@@ -171,9 +180,9 @@
             <option value="hard">Hard (MC + Timer)</option>
           </select>
           <select id="quizMode">
-            <option value="state">Bundesland</option>
-            <option value="capital">Hauptstadt</option>
-            <option value="mixed">Gemischt (2–4x)</option>
+            <option value="state" id="quizModeState">Bundesland</option>
+            <option value="capital" id="quizModeCapital">Hauptstadt</option>
+            <option value="mixed" id="quizModeMixed">Gemischt (2–4x)</option>
           </select>
         </div>
 
@@ -237,7 +246,7 @@
 
 <script>
   // --- Data ---
-  const CAPITALS = {
+  const CAPITALS_GERMANY = {
     "Baden-Württemberg": "Stuttgart",
     "Bayern": "München",
     "Berlin": "Berlin",
@@ -255,9 +264,77 @@
     "Schleswig-Holstein": "Kiel",
     "Thüringen": "Erfurt"
   };
-  const STATES = Object.keys(CAPITALS);
+  const CAPITALS_EUROPE = {
+    "Albania": "Tirana",
+    "Austria": "Vienna",
+    "Belarus": "Minsk",
+    "Belgium": "Brussels",
+    "Bosnia and Herzegovina": "Sarajevo",
+    "Bulgaria": "Sofia",
+    "Croatia": "Zagreb",
+    "Czechia": "Prague",
+    "Denmark": "Copenhagen",
+    "Estonia": "Tallinn",
+    "Finland": "Helsinki",
+    "France": "Paris",
+    "Germany": "Berlin",
+    "Greece": "Athens",
+    "Hungary": "Budapest",
+    "Iceland": "Reykjavik",
+    "Ireland": "Dublin",
+    "Italy": "Rome",
+    "Latvia": "Riga",
+    "Lithuania": "Vilnius",
+    "Luxembourg": "Luxembourg",
+    "Moldova": "Chișinău",
+    "Montenegro": "Podgorica",
+    "Netherlands": "Amsterdam",
+    "North Macedonia": "Skopje",
+    "Norway": "Oslo",
+    "Poland": "Warsaw",
+    "Portugal": "Lisbon",
+    "Romania": "Bucharest",
+    "Serbia": "Belgrade",
+    "Slovakia": "Bratislava",
+    "Slovenia": "Ljubljana",
+    "Spain": "Madrid",
+    "Sweden": "Stockholm",
+    "Switzerland": "Bern",
+    "Ukraine": "Kyiv",
+    "United Kingdom": "London"
+  };
+
+  const MODES = {
+    germany: {
+      key: 'germany',
+      flag: '🇩🇪',
+      label: 'Deutschland',
+      item: 'Bundesland',
+      itemPlural: 'Bundesländer',
+      geojson: './bundeslaender.geojson',
+      capitals: CAPITALS_GERMANY,
+      getName: (feature) => feature?.properties?.NAME_1 || feature?.properties?.name || feature?.properties?.NAME || '—'
+    },
+    europe: {
+      key: 'europe',
+      flag: '🇪🇺',
+      label: 'Europa',
+      item: 'Land',
+      itemPlural: 'Länder',
+      geojson: './europe.geojson',
+      capitals: CAPITALS_EUROPE,
+      getName: (feature) => feature?.properties?.name || feature?.properties?.NAME || feature?.properties?.ADMIN || '—'
+    }
+  };
+
+  let currentMode = 'germany';
+  let currentConfig = MODES[currentMode];
+  let currentCapitals = currentConfig.capitals;
+  let STATES = Object.keys(currentCapitals);
 
   // --- UI refs ---
+  const appTitle = document.getElementById('appTitle');
+  const modeSelect = document.getElementById('regionMode');
   const tabLearn = document.getElementById('tabLearn');
   const tabQuiz  = document.getElementById('tabQuiz');
   const learnSection = document.getElementById('learnSection');
@@ -267,6 +344,7 @@
   const savePlayerBtn = document.getElementById('savePlayerBtn');
 
   const learnTitleEl = document.getElementById('learnTitle');
+  const learnStateLabel = document.getElementById('learnStateLabel');
   const learnStateEl = document.getElementById('learnState');
   const learnCapitalEl = document.getElementById('learnCapital');
   const flashHint = document.getElementById('flashHint');
@@ -276,12 +354,16 @@
   const randomLearnBtn = document.getElementById('randomLearnBtn');
   const tourToggleBtn = document.getElementById('tourToggleBtn');
   const showCapitalsLearn = document.getElementById('showCapitalsLearn');
+  const factsTitle = document.getElementById('factsTitle');
   const factsBox = document.getElementById('factsBox');
 
   const quizTaskEl = document.getElementById('quizTask');
   const quizStatusEl = document.getElementById('quizStatus');
   const quizDifficulty = document.getElementById('quizDifficulty');
   const quizModeSel = document.getElementById('quizMode');
+  const quizModeStateOpt = document.getElementById('quizModeState');
+  const quizModeCapitalOpt = document.getElementById('quizModeCapital');
+  const quizModeMixedOpt = document.getElementById('quizModeMixed');
   const nextQuizBtn = document.getElementById('nextQuizBtn');
   const hintQuizBtn = document.getElementById('hintQuizBtn');
   const resetQuizBtn = document.getElementById('resetQuizBtn');
@@ -319,10 +401,63 @@
   tabLearn.addEventListener('click', () => setTab('learn'));
   tabQuiz.addEventListener('click',  () => setTab('quiz'));
 
+  function getModeLabels() {
+    return {
+      flag: currentConfig.flag,
+      label: currentConfig.label,
+      item: currentConfig.item,
+      itemPlural: currentConfig.itemPlural,
+      capital: 'Hauptstadt'
+    };
+  }
+
+  function applyModeLabels() {
+    const labels = getModeLabels();
+    appTitle.textContent = `${labels.flag} ${labels.label} – ${labels.itemPlural} (Lernen & Quiz)`;
+    factsTitle.textContent = `📏 Größte & kleinste ${labels.itemPlural}`;
+    learnStateLabel.textContent = labels.item;
+    randomLearnBtn.textContent = `Zufalls-${labels.item}`;
+    modeSelect.value = currentMode;
+    quizModeStateOpt.textContent = labels.item;
+    quizModeCapitalOpt.textContent = labels.capital;
+    quizModeMixedOpt.textContent = 'Gemischt (2–4x)';
+  }
+
+  async function setMode(modeKey) {
+    if (!MODES[modeKey]) return;
+    currentMode = modeKey;
+    currentConfig = MODES[currentMode];
+    currentCapitals = currentConfig.capitals;
+    STATES = Object.keys(currentCapitals);
+
+    applyModeLabels();
+    stopTour();
+    stopTimer();
+    setLearnInfo(null);
+    quizPoints = 0;
+    quizStreak = 0;
+    quizHintsUsed = 0;
+    mixedRemaining = 0;
+    quizStatusEl.textContent = '👤 ' + currentPlayer;
+
+    try {
+      await loadGeoData();
+      await setPlayer(currentPlayer);
+      newQuizQuestion();
+    } catch (e) {
+      console.error(e);
+      alert('Fehler: ' + e.message + '\n\nStarte: python server.py');
+    }
+  }
+
+  modeSelect.addEventListener('change', () => {
+    setMode(modeSelect.value).catch(console.error);
+  });
+
   // --- API (stats.json via server.py) ---
-  function defaultStats() {
+  function defaultStats(stateNames) {
     const per = {};
-    for (const s of STATES) per[s] = { right: 0, wrong: 0 };
+    for (const s of stateNames) per[s] = { right: 0, wrong: 0 };
     return {
       questions: 0, right: 0, wrong: 0,
       bestStreak: 0, highscore: 0,
@@ -332,17 +467,26 @@
   }
 
   let currentPlayer = 'Gast';
-  let stats = defaultStats();
+  let stats = defaultStats(STATES);
 
-  async function apiGetPlayer(name) {
-    const qs = new URLSearchParams({ name, states: STATES.join(',') });
+  async function apiGetPlayer(name, modeKey) {
+    const qs = new URLSearchParams({
+      name,
+      mode: modeKey,
+      states: STATES.join(',')
+    });
     const r = await fetch('/api/player?' + qs.toString());
     if (!r.ok) throw new Error('API GET failed');
     return await r.json();
   }
 
   async function apiSavePlayer() {
-    const payload = { name: currentPlayer, states: STATES, stats };
+    const payload = {
+      name: currentPlayer,
+      mode: currentMode,
+      states: STATES,
+      stats
+    };
     const r = await fetch('/api/player', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -354,8 +498,8 @@
   async function setPlayer(name) {
     currentPlayer = sanitizeName(name);
     playerInput.value = currentPlayer;
-    const res = await apiGetPlayer(currentPlayer);
-    stats = res.stats || defaultStats();
+    const res = await apiGetPlayer(currentPlayer, currentMode);
+    stats = res.stats || defaultStats(STATES);
     renderStatsPanel();
     refreshHighscoreUI();
     quizStatusEl.textContent = '👤 ' + currentPlayer;
@@ -373,12 +517,13 @@
   function setLearnInfo(name) {
     currentLearnState = name || null;
     cardShown = false;
+    const labels = getModeLabels();
 
     if (!name) {
-      learnTitleEl.textContent = 'Klicke auf ein Bundesland';
+      learnTitleEl.textContent = `Klicke auf ein ${labels.item}`;
       learnStateEl.textContent = '—';
       learnCapitalEl.textContent = '—';
-      flashHint.textContent = 'Wähle ein Bundesland – dann decke die Hauptstadt auf.';
+      flashHint.textContent = `Wähle ein ${labels.item} – dann decke die ${labels.capital} auf.`;
       flashQuestion.textContent = '—';
       flashAnswer.textContent = '—';
       flipCardBtn.disabled = true;
@@ -388,9 +533,9 @@
 
     learnTitleEl.textContent = '📘 Lernen';
     learnStateEl.textContent = name;
-    learnCapitalEl.textContent = CAPITALS[name] ?? '—';
+    learnCapitalEl.textContent = currentCapitals[name] ?? '—';
 
-    flashQuestion.textContent = 'Hauptstadt von ' + name + '?';
+    flashQuestion.textContent = `${labels.capital} von ${name}?`;
     flashAnswer.textContent = '???';
     flashHint.textContent = 'Versuch es zuerst im Kopf – dann „aufdecken“.';
     flipCardBtn.disabled = false;
@@ -400,7 +545,7 @@
   flipCardBtn.addEventListener('click', () => {
     if (!currentLearnState) return;
     cardShown = !cardShown;
-    flashAnswer.textContent = cardShown ? (CAPITALS[currentLearnState] ?? '—') : '???';
+    flashAnswer.textContent = cardShown ? (currentCapitals[currentLearnState] ?? '—') : '???';
     flipCardBtn.textContent = cardShown ? 'Antwort verstecken' : 'Antwort aufdecken';
     flashHint.textContent = cardShown ? 'Merken! 😊' : 'Nochmal überlegen.';
   });
@@ -521,7 +666,7 @@
       const btn = document.createElement('button');
       btn.className = 'choiceBtn';
       btn.type = 'button';
-      btn.textContent = opt + ' — ' + (CAPITALS[opt] ?? '—');
+      btn.textContent = opt + ' — ' + (currentCapitals[opt] ?? '—');
       btn.onclick = () => {
         [...choicesWrap.querySelectorAll('button')].forEach(b => b.style.background = '#fff');
         btn.style.background = '#f3f4f6';
@@ -543,14 +688,15 @@
     quizStatusEl.textContent = '👤 ' + currentPlayer;
     hardOptionSelected = null;
 
+    const labels = getModeLabels();
     const d = quizDifficulty.value;
     const effMode = getEffectiveMode();
 
     quizTargetState = STATES[Math.floor(Math.random() * STATES.length)];
-    quizTargetCapital = CAPITALS[quizTargetState];
+    quizTargetCapital = currentCapitals[quizTargetState];
 
     if (d === 'hard') {
-      quizTaskEl.textContent = '🧠 Wähle die richtige Option – dann klicke das Bundesland an';
+      quizTaskEl.textContent = `🧠 Wähle die richtige Option – dann klicke das ${labels.item} an`;
       buildHardChoices();
       startTimer();
       return;
@@ -560,7 +706,7 @@
     choicesWrap.style.display = 'none';
 
     if (effMode === 'state') quizTaskEl.textContent = '🎯 Finde: ' + quizTargetState;
-    else quizTaskEl.textContent = '🏙️ Hauptstadt: ' + quizTargetCapital;
+    else quizTaskEl.textContent = `🏙️ ${labels.capital}: ` + quizTargetCapital;
   }
 
   function quizReward(ok) {
@@ -825,111 +971,114 @@
   }
 
   function getLandName(feature) {
-    return feature?.properties?.NAME_1 || feature?.properties?.name || feature?.properties?.NAME || '—';
+    return currentConfig.getName(feature);
   }
 
-  // Load GeoJSON
-  fetch('./bundeslaender.geojson')
-    .then(r => {
-      if (!r.ok) throw new Error('Konnte bundeslaender.geojson nicht laden.');
-      return r.json();
-    })
-    .then(async data => {
-      // facts
-      const areas = [];
-      for (const f of (data.features || [])) {
-        const name = getLandName(f);
-        const areaM2 = featureAreaMeters2(f);
-        if (name && areaM2 > 0) areas.push({ name, areaM2 });
-      }
-      areas.sort((a,b)=>b.areaM2-a.areaM2);
-      if (areas.length >= 6) renderFacts(areas);
-      else factsBox.innerHTML = '<div class="muted">Zu wenige Daten für Flächen-Ranking.</div>';
+  async function loadGeoData() {
+    factsBox.innerHTML = '<div class="muted">Lade…</div>';
+    if (geoLayer) {
+      geoLayer.remove();
+      geoLayer = null;
+      layerByName.clear();
+    }
 
-      geoLayer = L.geoJSON(data, {
-        style: () => styleDefault,
-        onEachFeature: (feature, layer) => {
-          const name = getLandName(feature);
-          const cap = CAPITALS[name] ?? '—';
+    const response = await fetch(currentConfig.geojson);
+    if (!response.ok) {
+      throw new Error(`Konnte ${currentConfig.geojson} nicht laden.`);
+    }
+    const data = await response.json();
 
-          layerByName.set(name, layer);
+    // facts
+    const areas = [];
+    for (const f of (data.features || [])) {
+      const name = getLandName(f);
+      const areaM2 = featureAreaMeters2(f);
+      if (name && areaM2 > 0) areas.push({ name, areaM2 });
+    }
+    areas.sort((a,b)=>b.areaM2-a.areaM2);
+    if (areas.length >= 6) renderFacts(areas);
+    else factsBox.innerHTML = '<div class="muted">Zu wenige Daten für Flächen-Ranking.</div>';
 
-          // store tooltip html, but do NOT bind now
-          layer._ttHtml = `<b>${name}</b><br/>Hauptstadt: ${cap}`;
+    geoLayer = L.geoJSON(data, {
+      style: () => styleDefault,
+      onEachFeature: (feature, layer) => {
+        const name = getLandName(feature);
+        const cap = currentCapitals[name] ?? feature?.properties?.capital ?? '—';
 
-          layer.on('mouseover', () => {
-            layer.setStyle({ weight: 2.4, color: '#111827', fillOpacity: 0.45 });
-            // Tooltips are controlled globally via applyTooltipMode(); nothing to do here.
-          });
+        layerByName.set(name, layer);
 
-          layer.on('mouseout', () => {
-            if (geoLayer) geoLayer.resetStyle(layer);
-          });
+        // store tooltip html, but do NOT bind now
+        layer._ttHtml = `<b>${name}</b><br/>Hauptstadt: ${cap}`;
 
-          layer.on('click', () => {
-            if (isLearnActive()) {
-              setLearnInfo(name);
-              flashLayer(layer, { weight: 3.8, color: '#0f172a', fillOpacity: 0.75 });
+        layer.on('mouseover', () => {
+          layer.setStyle({ weight: 2.4, color: '#111827', fillOpacity: 0.45 });
+          // Tooltips are controlled globally via applyTooltipMode(); nothing to do here.
+        });
+
+        layer.on('mouseout', () => {
+          if (geoLayer) geoLayer.resetStyle(layer);
+        });
+
+        layer.on('click', () => {
+          if (isLearnActive()) {
+            setLearnInfo(name);
+            flashLayer(layer, { weight: 3.8, color: '#0f172a', fillOpacity: 0.75 });
+            return;
+          }
+
+          // quiz
+          const d = quizDifficulty.value;
+          let ok = false;
+
+          if (d === 'hard') {
+            if (!hardOptionSelected) {
+              quizStatusEl.textContent = '⚠️ Erst eine Option auswählen!';
               return;
             }
+            ok = (name === hardOptionSelected) && (hardOptionSelected === quizTargetState);
+          } else {
+            // For state/capital/mixed in non-hard: user always clicks the state.
+            ok = (name === quizTargetState);
+          }
 
-            // quiz
-            const d = quizDifficulty.value;
-            let ok = false;
+          const timeMs = (d === 'hard') ? (performance.now() - timerStart) : null;
 
-            if (d === 'hard') {
-              if (!hardOptionSelected) {
-                quizStatusEl.textContent = '⚠️ Erst eine Option auswählen!';
-                return;
-              }
-              ok = (name === hardOptionSelected) && (hardOptionSelected === quizTargetState);
-            } else {
-              // For state/capital/mixed in non-hard: user always clicks the state.
-              ok = (name === quizTargetState);
-            }
-
-            const timeMs = (d === 'hard') ? (performance.now() - timerStart) : null;
-
-            if (ok) {
-              flashLayer(layer, { weight: 3.8, color: '#0f172a', fillOpacity: 0.75 });
-              quizReward(true);
-              stopTimer();
-              recordAnswer(true, quizTargetState, d, timeMs);
-              setTimeout(newQuizQuestion, 900);
-            } else {
-              flashLayer(layer, { weight: 3.8, color: '#0f172a', fillOpacity: 0.12 });
-              quizReward(false);
-              recordAnswer(false, quizTargetState, d, timeMs);
-            }
-          });
-        }
-      }).addTo(map);
-
-      map.fitBounds(geoLayer.getBounds(), { padding: [28, 28] });
-
-      // init player
-      try {
-        await setPlayer(playerInput.value);
-      } catch (e) {
-        alert('API не отвечает. Запусти: python server.py');
-        console.error(e);
+          if (ok) {
+            flashLayer(layer, { weight: 3.8, color: '#0f172a', fillOpacity: 0.75 });
+            quizReward(true);
+            stopTimer();
+            recordAnswer(true, quizTargetState, d, timeMs);
+            setTimeout(newQuizQuestion, 900);
+          } else {
+            flashLayer(layer, { weight: 3.8, color: '#0f172a', fillOpacity: 0.12 });
+            quizReward(false);
+            recordAnswer(false, quizTargetState, d, timeMs);
+          }
+        });
       }
+    }).addTo(map);
 
-      // init
-      setLearnInfo(null);
-      refreshHighscoreUI();
-      setQuizScoreUI();
-      renderStatsPanel();
-      mixedRemaining = 0;
-      newQuizQuestion();
+    map.fitBounds(geoLayer.getBounds(), { padding: [28, 28] });
+    applyTooltipMode();
+  }
 
-      // initial tooltip mode
-      applyTooltipMode();
-    })
-    .catch(err => {
-      console.error(err);
-      alert('Fehler: ' + err.message + '\n\nStarte: python server.py');
-    });
+  async function initApp() {
+    applyModeLabels();
+    await loadGeoData();
+    await setPlayer(playerInput.value);
+
+    setLearnInfo(null);
+    refreshHighscoreUI();
+    setQuizScoreUI();
+    renderStatsPanel();
+    mixedRemaining = 0;
+    newQuizQuestion();
+  }
+
+  initApp().catch(err => {
+    console.error(err);
+    alert('Fehler: ' + err.message + '\n\nStarte: python server.py');
+  });
 </script>
 </body>
 </html>
