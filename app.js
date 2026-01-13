@@ -72,6 +72,64 @@ const EUROPE_DATA = {
   "United Kingdom": { name: "Vereinigtes Königreich", capital: "London" }
 };
 
+const AFRICA_DATA = {
+  "Algeria": { name: "Algerien", capital: "Algier" },
+  "Angola": { name: "Angola", capital: "Luanda" },
+  "Benin": { name: "Benin", capital: "Porto-Novo" },
+  "Botswana": { name: "Botswana", capital: "Gaborone" },
+  "Burkina Faso": { name: "Burkina Faso", capital: "Ouagadougou" },
+  "Burundi": { name: "Burundi", capital: "Gitega" },
+  "Cabo Verde": { name: "Kap Verde", capital: "Praia" },
+  "Cameroon": { name: "Kamerun", capital: "Jaunde" },
+  "Central African Republic": { name: "Zentralafrikanische Republik", capital: "Bangui" },
+  "Chad": { name: "Tschad", capital: "N'Djamena" },
+  "Comoros": { name: "Komoren", capital: "Moroni" },
+  "Democratic Republic of the Congo": { name: "Demokratische Republik Kongo", capital: "Kinshasa" },
+  "Republic of the Congo": { name: "Republik Kongo", capital: "Brazzaville" },
+  "Djibouti": { name: "Dschibuti", capital: "Dschibuti" },
+  "Egypt": { name: "Ägypten", capital: "Kairo" },
+  "Equatorial Guinea": { name: "Äquatorialguinea", capital: "Malabo" },
+  "Eritrea": { name: "Eritrea", capital: "Asmara" },
+  "Eswatini": { name: "Eswatini", capital: "Mbabane" },
+  "Ethiopia": { name: "Äthiopien", capital: "Addis Abeba" },
+  "Gabon": { name: "Gabun", capital: "Libreville" },
+  "Gambia": { name: "Gambia", capital: "Banjul" },
+  "Ghana": { name: "Ghana", capital: "Accra" },
+  "Guinea": { name: "Guinea", capital: "Conakry" },
+  "Guinea-Bissau": { name: "Guinea-Bissau", capital: "Bissau" },
+  "Côte d'Ivoire": { name: "Elfenbeinküste", capital: "Yamoussoukro" },
+  "Kenya": { name: "Kenia", capital: "Nairobi" },
+  "Lesotho": { name: "Lesotho", capital: "Maseru" },
+  "Liberia": { name: "Liberia", capital: "Monrovia" },
+  "Libya": { name: "Libyen", capital: "Tripolis" },
+  "Madagascar": { name: "Madagaskar", capital: "Antananarivo" },
+  "Malawi": { name: "Malawi", capital: "Lilongwe" },
+  "Mali": { name: "Mali", capital: "Bamako" },
+  "Mauritania": { name: "Mauretanien", capital: "Nouakchott" },
+  "Mauritius": { name: "Mauritius", capital: "Port Louis" },
+  "Morocco": { name: "Marokko", capital: "Rabat" },
+  "Mozambique": { name: "Mosambik", capital: "Maputo" },
+  "Namibia": { name: "Namibia", capital: "Windhoek" },
+  "Niger": { name: "Niger", capital: "Niamey" },
+  "Nigeria": { name: "Nigeria", capital: "Abuja" },
+  "Rwanda": { name: "Ruanda", capital: "Kigali" },
+  "Sao Tome and Principe": { name: "São Tomé und Príncipe", capital: "São Tomé" },
+  "Senegal": { name: "Senegal", capital: "Dakar" },
+  "Seychelles": { name: "Seychellen", capital: "Victoria" },
+  "Sierra Leone": { name: "Sierra Leone", capital: "Freetown" },
+  "Somalia": { name: "Somalia", capital: "Mogadischu" },
+  "South Africa": { name: "Südafrika", capital: "Pretoria" },
+  "South Sudan": { name: "Südsudan", capital: "Juba" },
+  "Sudan": { name: "Sudan", capital: "Khartum" },
+  "Tanzania": { name: "Tansania", capital: "Dodoma" },
+  "Togo": { name: "Togo", capital: "Lomé" },
+  "Tunisia": { name: "Tunesien", capital: "Tunis" },
+  "Uganda": { name: "Uganda", capital: "Kampala" },
+  "Zambia": { name: "Sambia", capital: "Lusaka" },
+  "Zimbabwe": { name: "Simbabwe", capital: "Harare" },
+  "Western Sahara": { name: "Westsahara", capital: "El Aaiún" }
+};
+
 const EUROPE_NAME_BY_GEO = Object.fromEntries(
   Object.entries(EUROPE_DATA).map(([key, value]) => [key, value.name])
 );
@@ -80,7 +138,45 @@ const CAPITALS_EUROPE = Object.fromEntries(
   Object.values(EUROPE_DATA).map(({ name, capital }) => [name, capital])
 );
 
+const AFRICA_NAME_BY_GEO = Object.fromEntries(
+  Object.entries(AFRICA_DATA).map(([key, value]) => [key, value.name])
+);
+
+const CAPITALS_AFRICA = Object.fromEntries(
+  Object.values(AFRICA_DATA).map(({ name, capital }) => [name, capital])
+);
+
+const AFRICA_ALIASES = {
+  "Congo": "Republic of the Congo",
+  "Congo Republic": "Republic of the Congo",
+  "Republic of Congo": "Republic of the Congo",
+  "Congo (Brazzaville)": "Republic of the Congo",
+  "Congo, Rep.": "Republic of the Congo",
+  "Democratic Republic of Congo": "Democratic Republic of the Congo",
+  "Congo, Dem. Rep.": "Democratic Republic of the Congo",
+  "Congo, Democratic Republic of the": "Democratic Republic of the Congo",
+  "Congo (Kinshasa)": "Democratic Republic of the Congo",
+  "Ivory Coast": "Côte d'Ivoire",
+  "Cote d'Ivoire": "Côte d'Ivoire",
+  "Côte d’Ivoire": "Côte d'Ivoire",
+  "Cabo Verde": "Cabo Verde",
+  "Cape Verde": "Cabo Verde",
+  "Swaziland": "Eswatini",
+  "Gambia, The": "Gambia",
+  "The Gambia": "Gambia",
+  "São Tomé and Príncipe": "Sao Tome and Principe",
+  "Sao Tome & Principe": "Sao Tome and Principe",
+  "Sao Tome and Principe": "Sao Tome and Principe",
+  "United Republic of Tanzania": "Tanzania",
+  "Tanzania, United Republic of": "Tanzania",
+  "Eswatini (Swaziland)": "Eswatini"
+};
+
 function getEuropeRawName(feature) {
+  return feature?.properties?.NAME || feature?.properties?.name || feature?.properties?.ADMIN || '—';
+}
+
+function getAfricaRawName(feature) {
   return feature?.properties?.NAME || feature?.properties?.name || feature?.properties?.ADMIN || '—';
 }
 
@@ -106,6 +202,20 @@ const MODES = {
     getName: (feature) => {
       const raw = getEuropeRawName(feature);
       return EUROPE_NAME_BY_GEO[raw] || raw || '—';
+    }
+  },
+  africa: {
+    key: 'africa',
+    flag: '🌍',
+    label: 'Afrika',
+    item: 'Land',
+    itemPlural: 'Länder',
+    geojson: './africa.json',
+    capitals: CAPITALS_AFRICA,
+    getName: (feature) => {
+      const raw = getAfricaRawName(feature);
+      const canonical = AFRICA_ALIASES[raw] || raw;
+      return AFRICA_NAME_BY_GEO[canonical] || AFRICA_NAME_BY_GEO[raw] || raw || '—';
     }
   }
 };
