@@ -603,12 +603,13 @@ showCapitalsLearn.addEventListener('change', applyTooltipMode);
 
 // --- Map setup (no base layer) ---
 const map = L.map('map', {
-  zoomControl: false,
-  scrollWheelZoom: false,
-  dragging: false,
-  doubleClickZoom: false,
-  boxZoom: false,
-  keyboard: false,
+  zoomControl: true,
+  scrollWheelZoom: true,
+  dragging: true,
+  doubleClickZoom: true,
+  boxZoom: true,
+  keyboard: true,
+  touchZoom: true,
   attributionControl: false
 });
 
