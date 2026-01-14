@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Geografie – Deutschland</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="./app.css" />
+</head>
+
+<body data-mode="germany">
+<div class="app">
+  <div id="map"></div>
+
+  <aside class="panel">
+    <div class="title" id="appTitle">🇩🇪 Deutschland – Bundesländer (Lernen & Quiz)</div>
+
+    <div class="card">
+      <div class="big" style="font-size:16px;">👤 Spieler</div>
+      <div class="row2">
+        <input id="playerName" placeholder="Name (z.B. Max)" value="Gast" />
+        <button id="savePlayerBtn" type="button">Speichern</button>
+      </div>
+      <div class="muted" style="margin-top:8px;">Statistik wird in <code>stats.json</code> gespeichert (über <code>server.py</code>).</div>
+    </div>
+
+    <div class="card">
+      <div class="big" style="font-size:16px;">🌍 Regionen</div>
+      <div class="btns">
+        <a class="navBtn" href="./germany.html" aria-current="page">🇩🇪 Deutschland</a>
+        <a class="navBtn" href="./europe.html">🇪🇺 Europa</a>
+        <a class="navBtn" href="./africa.html">🌍 Afrika</a>
+      </div>
+      <div class="muted" style="margin-top:8px;">Wechsle zwischen Deutschland, Europa und Afrika.</div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" id="tabLearn" type="button">📘 Lernen</button>
+      <button class="tab" id="tabQuiz" type="button">🎮 Quiz</button>
+    </div>
+
+    <section id="learnSection">
+      <div class="card">
+        <div class="big" id="learnTitle">Klicke auf ein Bundesland</div>
+
+        <div class="info">
+          <div class="cell">
+            <div class="label" id="learnStateLabel">Bundesland</div>
+            <div class="value" id="learnState">—</div>
+          </div>
+          <div class="cell">
+            <div class="label">Hauptstadt</div>
+            <div class="value" id="learnCapital">—</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="big" style="font-size:16px;">🗂️ Karteikarte</div>
+        <div class="muted" id="flashHint">Wähle ein Bundesland – dann decke die Hauptstadt auf.</div>
+
+        <div class="info" style="margin-top:10px;">
+          <div class="cell">
+            <div class="label">Frage</div>
+            <div class="value" id="flashQuestion">—</div>
+          </div>
+          <div class="cell">
+            <div class="label">Antwort</div>
+            <div class="value" id="flashAnswer">—</div>
+          </div>
+        </div>
+
+        <div class="btns">
+          <button id="flipCardBtn" type="button" disabled>Antwort aufdecken</button>
+          <button id="randomLearnBtn" type="button">Zufallsland</button>
+          <button id="tourToggleBtn" type="button">Auto-Tour: Start</button>
+        </div>
+
+        <div class="pill">
+          <input id="showCapitalsLearn" type="checkbox" />
+          <label for="showCapitalsLearn">Tooltip in Lernen anzeigen</label>
+        </div>
+
+        <div class="muted" style="margin-top:10px;">Hinweis: Im Quiz sind Tooltips komplett deaktiviert.</div>
+      </div>
+
+      <div class="card">
+        <div class="big" style="font-size:16px;" id="factsTitle">📏 Größte & kleinste Bundesländer</div>
+        <div class="muted">Berechnet automatisch aus deinem GeoJSON.</div>
+        <div class="factsGrid" id="factsBox"><div class="muted">Lade…</div></div>
+      </div>
+    </section>
+
+    <section id="quizSection" style="display:none;">
+      <div class="card">
+        <div class="big" id="quizTask">Lade…</div>
+
+        <div class="btns">
+          <button id="nextQuizBtn" type="button">Nächste Frage</button>
+          <button id="hintQuizBtn" type="button">Tipp (−)</button>
+        </div>
+
+        <div class="btns" style="margin-top:10px;">
+          <select id="quizDifficulty">
+            <option value="easy">Leicht</option>
+            <option value="medium">Mittel</option>
+            <option value="hard">Schwer (MC + Timer)</option>
+          </select>
+          <select id="quizMode">
+            <option value="state" id="quizModeState">Bundesland</option>
+            <option value="capital" id="quizModeCapital">Hauptstadt</option>
+            <option value="mixed" id="quizModeMixed">Gemischt (2–4x)</option>
+          </select>
+        </div>
+
+        <div class="timerBarWrap" id="timerWrap" style="display:none;">
+          <div class="timerBar" id="timerBar"></div>
+        </div>
+
+        <div class="choices" id="choices" style="display:none;"></div>
+
+        <div class="status" id="quizStatus"></div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="label">Punkte</div>
+            <div class="value" id="quizPoints">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Serie</div>
+            <div class="value" id="quizStreak">0</div>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="label">Highscore</div>
+            <div class="value" id="quizHigh">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Ø Zeit (Schwer)</div>
+            <div class="value" id="stAvgTime">—</div>
+          </div>
+        </div>
+
+        <div class="btns" style="margin-top:10px;">
+          <button id="resetQuizBtn" type="button">Zurücksetzen</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="big" style="font-size:16px;">📊 Statistik</div>
+
+        <div class="stats">
+          <div class="stat"><div class="label">Fragen</div><div class="value" id="stQuestions">0</div></div>
+          <div class="stat"><div class="label">Trefferquote</div><div class="value" id="stAccuracy">0%</div></div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="label">Richtig / Falsch</div><div class="value" id="stRF">0 / 0</div></div>
+          <div class="stat"><div class="label">Beste Serie</div><div class="value" id="stBestStreak">0</div></div>
+        </div>
+
+        <div class="muted" style="margin-top:10px;">Speicherung: <code>stats.json</code> (pro Spielername).</div>
+      </div>
+    </section>
+
+    <div class="card">
+      <div class="muted">Start: <code>python server.py</code> → <code>http://localhost:8000</code><br/>Dateien: <code>germany.html</code>, <code>bundeslaender.geojson</code>, <code>stats.json</code></div>
+    </div>
+  </aside>
+</div>
+
+<script src="./app.js"></script>
+</body>
+</html>

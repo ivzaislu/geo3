@@ -1,16 +1,18 @@
-# Bundesländer – Lernen & Quiz
+# Geografie – Lernen & Quiz
 
-Mini-Spiel zum Lernen der deutschen Bundesländer (Namen + Hauptstädte) mit **Lernen**- und **Quiz**-Modus.
+Mini-Spiel zum Lernen von Regionen und Ländern (inkl. Hauptstädten) mit **Lernen**- und **Quiz**-Modus.
 
 ## Features
-- **Nur Deutschland-Umriss + Bundesländer** (keine Hintergrundkarte)
-- **Lernen**: Klick zeigt Bundesland + Hauptstadt, Karteikarte (Antwort aufdecken)
-- **Quiz**: Easy/Medium/Hard
+- **Deutschland, Europa und Afrika** als separate Karten
+- **Nur Umrisse** (keine Hintergrundkarte)
+- **Lernen**: Klick zeigt Region/Land + Hauptstadt, Karteikarte (Antwort aufdecken)
+- **Quiz**: Leicht/Mittel/Schwer
   - **Hard**: Multiple Choice + Timer
   - **Gemischt (2–4x)**: Frage-Typ wechselt in Blöcken von 2 bis 4 Aufgaben (Bundesland/Hauptstadt)
-- **Europa-Modus**: eigenes Karten-Quiz für Länder & Hauptstädte, umschaltbar per Modus-Selector
+- **Europa- und Afrika-Modus**: eigene Karten-Quiz für Länder & Hauptstädte
 - **Tooltips**: **nur in Lernen** (Checkbox), **nie im Quiz**
 - **Statistik pro Spielername** wird in `stats.json` gespeichert
+- **Zoom & Pan**: Karte ist zoombar für kleine Länder/Regionen
 
 ## Start
 Im Projektordner:
@@ -24,8 +26,12 @@ Dann öffnen:
 
 Dateien:
 - `index.html`
+- `germany.html`
+- `europe.html`
+- `africa.html`
 - `bundeslaender.geojson`
 - `europe.geojson`
+- `africa.json`
 - `server.py`
 - `stats.json` (wird automatisch angelegt)
 
