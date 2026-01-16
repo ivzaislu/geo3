@@ -172,6 +172,11 @@ const AFRICA_ALIASES = {
   "Eswatini (Swaziland)": "Eswatini"
 };
 
+function getAfricaEntry(raw) {
+  const canonical = AFRICA_ALIASES[raw] || raw;
+  return AFRICA_DATA[canonical] || AFRICA_DATA[raw] || null;
+}
+
 function getEuropeRawName(feature) {
   return feature?.properties?.NAME || feature?.properties?.name || feature?.properties?.ADMIN || '—';
 }
@@ -214,8 +219,8 @@ const MODES = {
     capitals: CAPITALS_AFRICA,
     getName: (feature) => {
       const raw = getAfricaRawName(feature);
-      const canonical = AFRICA_ALIASES[raw] || raw;
-      return AFRICA_NAME_BY_GEO[canonical] || AFRICA_NAME_BY_GEO[raw] || raw || '—';
+      const entry = getAfricaEntry(raw);
+      return entry?.name || AFRICA_NAME_BY_GEO[raw] || raw || '—';
     }
   }
 };
@@ -869,7 +874,12 @@ async function loadGeoData() {
     style: () => styleDefault,
     onEachFeature: (feature, layer) => {
       const name = getLandName(feature);
-      const cap = currentCapitals[name] ?? feature?.properties?.capital ?? '—';
+      let cap = currentCapitals[name] ?? feature?.properties?.capital ?? '—';
+      if (currentMode === 'africa') {
+        const raw = getAfricaRawName(feature);
+        const entry = getAfricaEntry(raw);
+        if (entry?.capital) cap = entry.capital;
+      }
 
       layerByName.set(name, layer);
 
